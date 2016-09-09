@@ -1,0 +1,19 @@
+{
+  "name": "Scarbous/MrSpeed",
+  "description": "JS + CSS Optimization",
+  "minimum-stability": "dev",
+  "type": "wordpress-plugin",
+  "authors": [
+    {
+      "name": "Sascha Heilmeier",
+      "email": "mr@mrknister.com"
+    }
+  ],
+  "require": {
+    "tedivm/jshrink": "~1.0",
+    "oyejorge/less.php": "~1.7.0.9"
+  },
+  "autoload": {
+    "psr-4": {"Scarbous\\MrSpeed\\": "src/"}
+  }
+}

@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "e350fcefc1eb7038846fc44cd94486cd",
-    "content-hash": "f7247cbd50074abeb0e1808033edda2a",
+    "hash": "e0ba6a6e4cec5a0072cef349e2ebfe03",
+    "content-hash": "72ee21d604829240beced4bb0d8848b8",
     "packages": [
         {
             "name": "oyejorge/less.php",
@@ -118,7 +118,7 @@
     ],
     "packages-dev": [],
     "aliases": [],
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,

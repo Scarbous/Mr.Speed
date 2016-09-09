@@ -7,6 +7,26 @@ class Settings
 {
 
     protected $theSettings = [
+        'css' => [
+            'title' => 'CSS-Optimization-Options',
+            'description' => '<p>Options for CSS-Optimization</p>',
+            'callback' => 'cssSettingsSection',
+            'fields' => [
+                'active' => [
+                    'type' => 'checkbox',
+                    'label' => 'Activate CSS-Optimization'
+                ],
+                'gzip' => [
+                    'type' => 'checkbox',
+                    'label' => 'Use gzip'
+                ],
+                'excludeStyles' => [
+                    'type' => 'textarea',
+                    'label' => 'Exclude Styles',
+                    'description' => 'Styles which should not optimized<br>each Line one Style-Name'
+                ],
+            ]
+        ],
         'js' => [
             'title' => 'JS-Optimization-Options',
             'description' => '<p>Options for JS-Optimization</p>',
@@ -51,6 +71,15 @@ class Settings
         add_action('admin_init', [$this, 'page_init']);
     }
 
+    /**
+     * JS Section Description
+     *
+     * @return void
+     */
+    public function cssSettingsSection()
+    {
+        echo $this->theSettings['css']['description'];
+    }
 
     /**
      * JS Section Description

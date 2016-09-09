@@ -10,14 +10,18 @@ class JavaScript
      * @var array
      */
     private $excludeScripts = [
-        'admin-bar',
-        'wp-embed'
+        'admin-bar'
     ];
 
     /**
      * @var \WP_Scripts
      */
     private $wpScripts;
+
+    /**
+     * @var string
+     */
+    private $includeScriptTag;
 
     /**
      * JavaScript constructor.
@@ -28,19 +32,24 @@ class JavaScript
         $this->settings = $this->settings['js'];
 
         if ($this->settings['active']) {
+            $this->loadExcludeScripts();
             $this->loadWpScripts();
             if (!is_admin()) {
                 add_filter('print_scripts_array', [$this, 'optimizeJavaScript']);
-                if ($this->settings['shrink']) {
+                if ($this->settings['JShrink']) {
                     add_Filter('mrSpeed.JS.content', [$this, 'doJShrink']);
                 }
             }
         }
     }
 
-    function loadConfig()
+    function loadExcludeScripts()
     {
-        get_option('');
+        $this->excludeScripts = array_merge(
+            $this->excludeScripts,
+            explode(PHP_EOL, $this->settings['excludeScripts'])
+        );
+        $this->excludeScripts = array_map('trim', $this->excludeScripts);
     }
 
     /**
@@ -79,9 +88,9 @@ class JavaScript
         if (count($scripts['internal']) == 0)
             return ([]);
 
-        $contentArray  = [];
-        $fileName      = md5(implode('', array_keys($scripts['internal']))) . '.js';
-        $filePath      = '/cache/' . $fileName;
+        $contentArray = [];
+        $fileName = md5(implode('', array_keys($scripts['internal']))) . '.js';
+        $filePath = '/cache/' . $fileName;
         $cacheFilePath = GeneralUtility::getTempDir('js') . $filePath;
 
         if (!file_exists($cacheFilePath)) {
@@ -98,16 +107,16 @@ class JavaScript
                 mkdir(dirname($cacheFilePath), 0777, true);
             }
             file_put_contents($cacheFilePath, $script);
-            if ($this->settings['shrink']) {
-                $scriptZip = gzencode($script);
-                file_put_contents($cacheFilePath . '.gzip', $scriptZip);
-            }
+            $scriptZip = gzencode($script);
+            file_put_contents($cacheFilePath . '.gzip', $scriptZip);
 
         }
 
-        $this->includeScriptTag = '<script src="' . GeneralUtility::getTempUrl('js') . $filePath . ($this->settings['shrink'] == true ? '.gzip' : '') . '" ></script>';
+        $this->includeScriptTag = '<script src="' . GeneralUtility::getTempUrl('js') . '" ></script>';
         if ($this->settings['toFooter']) {
-            add_action('wp_footer', function(){ echo $this->includeScriptTag; }, 100000);
+            add_action('wp_footer', function () {
+                echo $this->includeScriptTag;
+            }, 100000);
         } else {
             echo $this->includeScriptTag;
         }
@@ -137,7 +146,7 @@ class JavaScript
                 } else {
                     $this->wpScripts->done[] = $this->wpScripts->to_do[$jsKey];
                     unset($this->wpScripts->to_do[$jsKey]);
-                    $src                         = trim($query->src, "/");
+                    $src = trim($query->src, "/");
                     $theScripts['internal'][$js] = ABSPATH . str_replace($url, '', $src);
 
                 }

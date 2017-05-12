@@ -2,6 +2,7 @@
 namespace Scarbous\MrSpeed\Optimize;
 
 use Scarbous\MrSpeed\Utility\GeneralUtility;
+use MatthiasMullie\Minify;
 
 class Css
 {
@@ -10,6 +11,7 @@ class Css
      * @var array
      */
     private $excludeStyles = [
+        'admin-bar'
     ];
 
     /**
@@ -26,9 +28,10 @@ class Css
         $this->settings = $this->settings['css'];
 
         if ($this->settings['active']) {
-            $this->loadExcludeStyles();
-            $this->loadWpStyles();
             if (!is_admin()) {
+                $this->loadExcludeStyles();
+
+                add_action('wp_default_styles', [$this, 'loadWpStyles']);
                 add_filter('print_styles_array', [$this, 'optimizeJavaScript']);
                 if ($this->settings['shrink']) {
                     #add_Filter('mrSpeed.JS.content', [$this, 'shrinkCss']);
@@ -48,56 +51,43 @@ class Css
 
     /**
      * Loads the WP_Styles Class
+     * @param \WP_Styles $wpStyles
      */
-    private function loadWpStyles()
+    function loadWpStyles(&$wpStyles)
     {
-        global $wp_styles;
-        if (!is_a($wp_styles, 'WP_Styles')) {
-            $wp_styles = new \WP_Scripts();
-        }
-        $this->wpStyles = &$wp_styles;
+        $this->wpStyles = &$wpStyles;
     }
 
     /**
-     * @param array $css_array
      * @return array
      */
-    function optimizeJavaScript($css_array)
+    function optimizeJavaScript()
     {
         $styles = $this->getScriptQueue();
 
         if (count($styles['internal']) == 0)
             return ([]);
 
-        $contentArray = [];
         $fileName = md5(implode('', array_keys($styles['internal']))) . '.css';
-        $filePath = '/cache/' . $fileName;
-        $cacheFilePath = GeneralUtility::getTempDir('css') . $filePath;
+        $cacheFilePath = GeneralUtility::getTempDir('css') . $fileName;
+        $cacheFileUrl = GeneralUtility::getTempUrl( 'css' ) . $fileName;
 
         if (!file_exists($cacheFilePath)) {
-            foreach ($styles['internal'] as $name => $style) {
-                $contentArray[$name] =
-                    "/**" . PHP_EOL
-                    . " * $name" . PHP_EOL
-                    . " */" . PHP_EOL
-                    . apply_filters('mrSpeed.CSS.content', file_get_contents($style));
+            $minifier = new Minify\CSS();
+            foreach ($styles['internal'] as $style) {
+                $minifier->add('/'.$style);
             }
-            $style = implode(PHP_EOL, $contentArray);
 
             if (!is_dir(dirname($cacheFilePath))) {
                 mkdir(dirname($cacheFilePath), 0777, true);
             }
-
-            file_put_contents($cacheFilePath, $style);
-            $styleZip = gzencode($style);
-            file_put_contents($cacheFilePath . '.gzip', $styleZip);
+            $minifier->minify($cacheFilePath);
+            $minifier->gzip($cacheFilePath . '.gzip');
         }
 
-        echo '<link rel="stylesheet" href="' . GeneralUtility::getTempUrl('css') . '" type="text/css" />';
+        echo '<link rel="stylesheet" data-test="123" href="' . $cacheFileUrl . ($this->settings['gzip']?'.gzip':'') . '" type="text/css" />';
 
         return ($this->wpStyles->to_do);
-
-
     }
 
     /**
@@ -108,7 +98,7 @@ class Css
     private function getScriptQueue()
     {
         $theStyles = array();
-        $url = get_bloginfo('url') . '/';
+
         foreach ($this->wpStyles->to_do as $cssKey => $css) {
 
             if (in_array($css, $this->excludeStyles)) continue;
@@ -123,7 +113,8 @@ class Css
                     $this->wpStyles->done[] = $this->wpStyles->to_do[$cssKey];
                     unset($this->wpStyles->to_do[$cssKey]);
                     $src = trim($query->src, "/");
-                    $theStyles['internal'][$css] = ABSPATH . str_replace($url, '', $src);
+
+                    $theStyles['internal'][$css] = ABSPATH . GeneralUtility::removeDomainFromUrl($src);
 
                 }
             }

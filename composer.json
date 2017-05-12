@@ -10,8 +10,7 @@
     }
   ],
   "require": {
-    "tedivm/jshrink": "~1.0",
-    "oyejorge/less.php": "~1.7.0.9"
+    "matthiasmullie/minify": "dev-master"
   },
   "autoload": {
     "psr-4": {"Scarbous\\MrSpeed\\": "src/"}

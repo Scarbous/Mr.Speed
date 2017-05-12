@@ -5,6 +5,8 @@ class GeneralUtility
 {
     const TEMP_DIR_NAME = 'mrSpeed';
 
+    static public $RdfuPattern;
+
     /**
      * @param string $url
      * @return bool
@@ -21,40 +23,61 @@ class GeneralUtility
 
     }
 
-
-    public static function getTempDir($type)
-    {
+    /**
+     * @param string $type
+     *
+     * @return bool|string
+     */
+    public static function getTempDir( $type ) {
         $uploadDir = wp_upload_dir();
-        switch ($type) {
+        $dir       = $uploadDir['basedir'] . '/' . self::TEMP_DIR_NAME . '/';
+        switch ( $type ) {
             case 'js':
-                return $uploadDir['basedir'] . '/'.self::TEMP_DIR_NAME.'/js';
+                return $dir . 'js/';
                 break;
             case 'css':
-                return $uploadDir['basedir'] . '/'.self::TEMP_DIR_NAME.'/css';
+                return $dir . 'css/';
                 break;
         }
+
         return false;
     }
 
-
-    public static function getTempUrl($type)
-    {
+    /**
+     * @param string $type
+     *
+     * @return bool|string
+     */
+    public static function getTempUrl( $type ) {
         $uploadDir = wp_upload_dir();
-        switch ($type) {
+        $url       = $uploadDir['baseurl'] . '/' . self::TEMP_DIR_NAME . '/';
+        switch ( $type ) {
             case 'js':
-                return $uploadDir['baseurl'] . '/'.self::TEMP_DIR_NAME.'/js';
+                return $url . 'js/';
                 break;
             case 'css':
-                return $uploadDir['baseurl'] . '/'.self::TEMP_DIR_NAME.'/css';
+                return $url . 'css/';
                 break;
         }
+
         return false;
     }
+
+    /**
+     * Clean Temp dir
+     */
     public static function cleanTempDir(){
         $uploadDir = wp_upload_dir();
-        self::delTree( $uploadDir['basedir'] . '/'.self::TEMP_DIR_NAME.'/', trueh);
+        self::delTree( $uploadDir['basedir'] . '/'.self::TEMP_DIR_NAME.'/');
     }
 
+    /**
+     * Remove Files recursive
+     *
+     * @param string $dir
+     *
+     * @return bool
+     */
     public static function delTree($dir) {
         if(file_exists($dir)) {
             $files = array_diff(scandir($dir), array('.','..'));
@@ -63,5 +86,27 @@ class GeneralUtility
             }
             return rmdir($dir);
         }
+        return true;
+    }
+
+    /**
+     * @return string
+     */
+    private static function getRdfuPattern() {
+        if ( empty( self::$RdfuPattern ) ) {
+            $url               = parse_url( get_bloginfo( 'url' ), PHP_URL_HOST );
+            self::$RdfuPattern = "'^.*?" . preg_quote( $url ) . "/'i";
+        }
+
+        return self::$RdfuPattern;
+    }
+
+    /**
+     * @param string $url
+     *
+     * @return mixed
+     */
+    public static function removeDomainFromUrl( $url ) {
+        return preg_replace( self::getRdfuPattern(), '', $url );
     }
 }

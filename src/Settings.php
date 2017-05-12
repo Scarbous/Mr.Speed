@@ -40,10 +40,6 @@ class Settings
                     'type' => 'checkbox',
                     'label' => 'Use gzip'
                 ],
-                'JShrink' => [
-                    'type' => 'checkbox',
-                    'label' => 'Use JShrink'
-                ],
                 'excludeScripts' => [
                     'type' => 'textarea',
                     'label' => 'Exclude Scripts',

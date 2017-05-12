@@ -30,12 +30,8 @@ class Css
         if ($this->settings['active']) {
             if (!is_admin()) {
                 $this->loadExcludeStyles();
-
                 add_action('wp_default_styles', [$this, 'loadWpStyles']);
                 add_filter('print_styles_array', [$this, 'optimizeJavaScript']);
-                if ($this->settings['shrink']) {
-                    #add_Filter('mrSpeed.JS.content', [$this, 'shrinkCss']);
-                }
             }
         }
     }
@@ -85,7 +81,7 @@ class Css
             $minifier->gzip($cacheFilePath . '.gzip');
         }
 
-        echo '<link rel="stylesheet" data-test="123" href="' . $cacheFileUrl . ($this->settings['gzip']?'.gzip':'') . '" type="text/css" />';
+        echo '<link rel="stylesheet" href="' . $cacheFileUrl . ($this->settings['gzip']?'.gzip':'') . '" type="text/css" />';
 
         return ($this->wpStyles->to_do);
     }

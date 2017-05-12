@@ -99,16 +99,21 @@ class JavaScript
 
         if ($this->settings['toFooter']) {
             add_action('wp_footer', function () {
-                echo implode(PHP_EOL,$this->includeScriptTag);
-
-                $this->includeScriptTag =[];
+                $this->printScriptTags();
             }, 100000);
         } else {
-            echo implode(PHP_EOL,$this->includeScriptTag);
-            $this->includeScriptTag =[];
+            $this->printScriptTags();
         }
 
         return ($this->wpScripts->to_do);
+    }
+
+    /**
+     *
+     */
+    private function printScriptTags(){
+        echo implode(PHP_EOL,$this->includeScriptTag);
+        $this->includeScriptTag =[];
     }
 
     /**
@@ -118,10 +123,8 @@ class JavaScript
      */
     private function getScriptQueue()
     {
-      #  print_r($this->wpScripts); die();
         $theScripts = [];
-        $topJs=[];
-        $footerJs=[];
+
         foreach ($this->wpScripts->to_do as $jsKey => $js) {
             if (in_array($js, $this->excludeScripts)) continue;
 
@@ -139,11 +142,6 @@ class JavaScript
                         $this->addInlineScript( $query->extra['data'] );
                     }
                     $theScripts['internal'][$js] = $jsPath = ABSPATH . GeneralUtility::removeDomainFromUrl($src);
-                    /*if(empty($query->args)){
-                        $topJs[$js] = $jsPath;
-                    } else {
-                        $footerJs[$js] = $jsPath;
-                    }*/
                 }
             }
         }

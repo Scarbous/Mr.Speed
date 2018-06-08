@@ -8,13 +8,24 @@ class GeneralUtility
     static public $RdfuPattern;
 
     /**
+     * @param array $attributes
+     * @return string
+     */
+    static function getTagAttributes($attributes)
+    {
+        array_walk($attributes, function (&$value, $key) {
+            $value = $key . '="' . esc_attr($value) . '"';
+        });
+        return implode(' ', $attributes);
+    }
+
+    /**
      * @param string $url
      * @return bool
      */
     public static function isUrlExternal($url) {
         $components = parse_url($url);
         $currentUrlComponents = parse_url(get_bloginfo('url'));
-
         if(strtolower($components['host']) == strtolower($currentUrlComponents['host'])) {
             return false;
         } else {
@@ -29,8 +40,10 @@ class GeneralUtility
      * @return bool|string
      */
     public static function getTempDir( $type ) {
-        $uploadDir = wp_upload_dir();
-        $dir       = $uploadDir['basedir'] . '/' . self::TEMP_DIR_NAME . '/';
+        #$uploadDir = wp_upload_dir();
+
+        #echo print_r($uploadDir);die();
+        $dir       = trailingslashit(WP_CONTENT_DIR) . self::TEMP_DIR_NAME . '/';
         switch ( $type ) {
             case 'js':
                 return $dir . 'js/';
@@ -49,8 +62,10 @@ class GeneralUtility
      * @return bool|string
      */
     public static function getTempUrl( $type ) {
-        $uploadDir = wp_upload_dir();
-        $url       = $uploadDir['baseurl'] . '/' . self::TEMP_DIR_NAME . '/';
+        #$uploadDir = wp_upload_dir();
+
+        $url       = trailingslashit(WP_CONTENT_URL) . self::TEMP_DIR_NAME . '/';
+
         switch ( $type ) {
             case 'js':
                 return $url . 'js/';

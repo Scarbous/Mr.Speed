@@ -8,4 +8,6 @@ Author: Sascha Heilmeier
 
 require_once('vendor/autoload.php');
 
-$mrSpeed = new \Scarbous\MrSpeed\Core();
+define('MRSPEED_HOOK_PREFIX', 'mrSpeed_');
+
+\Scarbous\MrSpeed\Core::getInstance();

@@ -3,10 +3,24 @@ namespace Scarbous\MrSpeed;
 
 use Scarbous\MrSpeed\Utility\GeneralUtility;
 
-class Settings
+class Settings extends AbstractSingleton
 {
 
     protected $theSettings = [
+        'general' => [
+            'title'       => 'General',
+            'description' => '<p>General Settings</p>',
+            'callback' => 'generalSettingsSection',
+            'fields' => [
+                'debug' => [
+                    'type' => 'checkbox',
+                    'label' => 'Debug',
+                    'description' => 'Outputs the attribute "data-keys" to the resources.' .
+                        'This Tag contains all script names incl. version.'
+                ],
+            ]
+
+        ],
         'css' => [
             'title' => 'CSS-Optimization-Options',
             'description' => '<p>Options for CSS-Optimization</p>',
@@ -20,7 +34,7 @@ class Settings
                     'type' => 'checkbox',
                     'label' => 'Use gzip'
                 ],
-                'excludeStyles' => [
+                'excludes' => [
                     'type' => 'textarea',
                     'label' => 'Exclude Styles',
                     'description' => 'Styles which should not optimized<br>each Line one Style-Name'
@@ -40,7 +54,7 @@ class Settings
                     'type' => 'checkbox',
                     'label' => 'Use gzip'
                 ],
-                'excludeScripts' => [
+                'excludes' => [
                     'type' => 'textarea',
                     'label' => 'Exclude Scripts',
                     'description' => 'Scripts which should not optimized<br>each Line one Script-Name'
@@ -68,7 +82,17 @@ class Settings
     }
 
     /**
-     * JS Section Description
+     * General Section Description
+     *
+     * @return void
+     */
+    public function generalSettingsSection()
+    {
+        echo $this->theSettings['general']['description'];
+    }
+
+    /**
+     * CSS Section Description
      *
      * @return void
      */
@@ -232,7 +256,9 @@ class Settings
             default:
                 echo '<p>' . $args['config']['type'] . '</p>';
                 break;
-
+        }
+        if (key_exists('description', $args['config'])) {
+            echo '<p class="description">' . $args['config']['description'] . '</p>';
         }
     }
 

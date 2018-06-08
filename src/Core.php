@@ -1,19 +1,23 @@
 <?php
+
 namespace Scarbous\MrSpeed;
 
 use Scarbous\MrSpeed\Optimize\JavaScript;
 use Scarbous\MrSpeed\Optimize\Css;
 
-class Core
+class Core extends AbstractSingleton
 {
 
+    /**
+     * Core constructor.
+     */
     public function __construct()
     {
         if (is_admin()) {
-            $my_settings_page = new Settings();
+            Settings::getInstance();
         } else {
-            new Css();
-            new JavaScript();
+            Css::getInstance();
+            JavaScript::getInstance();
         }
     }
 }

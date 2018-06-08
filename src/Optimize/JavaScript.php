@@ -1,158 +1,90 @@
 <?php
+
 namespace Scarbous\MrSpeed\Optimize;
 
+
 use Scarbous\MrSpeed\Utility\GeneralUtility;
-use MatthiasMullie\Minify;
+use Scarbous\MrSpeed\Utility\SettingsUtility;
 
-class JavaScript
+class JavaScript extends AbstractOptimizer
 {
-    /**
-     * List of Libs witch should not be optimized
-     * @var array
-     */
-    private $excludeScripts = [
-        'admin-bar'
-    ];
+
+    static protected $count = 0;
+
+    static protected $scripts = [];
 
     /**
-     * @var \WP_Scripts
+     * @var  \WP_Scripts
      */
-    private $wpScripts;
+    public $wpDependencies;
 
     /**
-     * @var string
-     */
-    private $includeScriptTag;
-
-    /**
-     * @var array
-     */
-    private $inlineScript;
-
-    /**
-     * JavaScript constructor.
+     * Css constructor.
      */
     function __construct()
     {
-        $this->settings = get_option('mr_speed');
-        $this->settings = $this->settings['js'];
+        parent::__construct('js', \MatthiasMullie\Minify\JS::class);
+        add_action('wp_default_scripts', [$this, 'loadWpDependencies']);
+        add_filter('print_scripts_array', [$this, 'optimize']);
+        add_filter('script_loader_tag', [$this, 'output'], 100, 3);
+    }
 
-        if ($this->settings['active']) {
-
-            if (!is_admin()) {
-                $this->loadExcludeScripts();
-                add_action('wp_default_scripts', [$this, 'loadWpScripts']);
-                add_filter('print_scripts_array', [$this, 'optimizeJavaScript']);
+    function output($tag, $handle, $src)
+    {
+        if (strpos($handle, 'mr_speed_') === 0) {
+            $tag = '';
+            $extraScripts = [];
+            foreach (static::$scripts[$handle] as $item) {
+                $extraScripts[] = $this->wpDependencies->print_extra_script($item, false);
             }
+            $tag .= "<script type='text/javascript'>\n" .
+                "/* <![CDATA[ */\n" .
+                implode("", $extraScripts) .
+                "/* ]]> */\n" .
+                "</script>\n";
+
+            $tag .= $this->printTag([
+                'src' => $src,
+                'keys' =>  implode(',', static::$scripts[$handle])
+            ]);
         }
+        return $tag;
     }
 
-    function loadExcludeScripts()
-    {
-        $this->excludeScripts = array_merge(
-            $this->excludeScripts,
-            explode(PHP_EOL, $this->settings['excludeScripts'])
-        );
-        $this->excludeScripts = array_map('trim', $this->excludeScripts);
-    }
-
-    /**
-     * Loads the \WP_Scripts Class
-     */
-    function loadWpScripts(&$wpScripts)
-    {
-        $this->wpScripts = $wpScripts;
-    }
 
     /**
      * @return array
      */
-    function optimizeJavaScript()
+    function optimize()
     {
-        $scripts = $this->getScriptQueue();
-
-        if (count($scripts['internal']) == 0)
-            return ([]);
-
-        $fileName = md5(implode('', array_keys($scripts['internal']))) . '.js';
-        $cacheFilePath = GeneralUtility::getTempDir('js') . $fileName;
-        $cacheFileUrl = GeneralUtility::getTempUrl( 'js' ) . $fileName;
-
-        if ( ! file_exists( $cacheFilePath ) ) {
-            $minifier = new Minify\JS();
-            foreach ( $scripts['internal'] as $script ) {
-                if(!empty($script) && file_exists($script)){
-                    $minifier->add( '/' . $script );
-                }
-            }
-
-            if ( ! is_dir( dirname( $cacheFilePath ) ) ) {
-                mkdir( dirname( $cacheFilePath ), 0777, true );
-            }
-
-            $minifier->minify( $cacheFilePath );
-            $minifier->gzip( $cacheFilePath . '.gzip' );
+        static::$count++;
+        $script = 'mr_speed_' . static::$count;
+        static::$scripts[$script] ='';
+        $queue = $this->getQueue();
+        if (count($queue['internal']) > 0) {
+            $newScript = $this->optimizeElements($queue['internal']);
+            static::$scripts[$script] = array_keys($queue['internal']);
+            $this->wpDependencies->add($script, $newScript['url'], $this->wpDependencies->to_do);
+            $this->wpDependencies->to_do[] = $script;
         }
 
-        $this->includeScriptTag[] = '<script src="' . $cacheFileUrl . ($this->settings['gzip']?'.gzip':'') . '" ></script>';
-        $this->includeScriptTag[] = '<script>'.implode( '', $this->inlineScript ).'</script>';
-
-        if ($this->settings['toFooter']) {
-            add_action('wp_footer', function () {
-                $this->printScriptTags();
-            }, 100000);
-        } else {
-            $this->printScriptTags();
-        }
-
-        return ($this->wpScripts->to_do);
+        return $this->wpDependencies->to_do;
     }
 
     /**
-     *
+     * @param array $data
+     * @return string
      */
-    private function printScriptTags(){
-        echo implode(PHP_EOL,$this->includeScriptTag);
-        $this->includeScriptTag =[];
-    }
-
-    /**
-     * Returns the list of JavaScripts which should be minified
-     *
-     * @return array
-     */
-    private function getScriptQueue()
+    function printTag($data)
     {
-        $theScripts = [];
-
-        foreach ($this->wpScripts->to_do as $jsKey => $js) {
-            if (in_array($js, $this->excludeScripts)) continue;
-
-            if ($this->wpScripts->query($js, 'queue')) {
-                $query = $this->wpScripts->query($js);
-
-                if (filter_var($query->src, FILTER_VALIDATE_URL) && GeneralUtility::isUrlExternal($query->src)) {
-                    $theScripts['external'][$js] = $query->src;
-                } else {
-                    $this->wpScripts->done[] = $this->wpScripts->to_do[$jsKey];
-                    unset($this->wpScripts->to_do[$jsKey]);
-                    $src = trim($query->src, "/");
-
-                    if ( key_exists( 'data', $query->extra ) ) {
-                        $this->addInlineScript( $query->extra['data'] );
-                    }
-                    $theScripts['internal'][$js] = $jsPath = ABSPATH . GeneralUtility::removeDomainFromUrl($src);
-                }
-            }
+        $attributes = [];
+        $attributes['src'] = $data['src'];
+        $attributes['type'] = "text/javascript";
+        if (SettingsUtility::isDebug()) {
+            $attributes['data-keys'] = $data['keys'];
         }
-
-        return $theScripts;
-    }
-
-    /**
-     * @param string $script
-     */
-    function addInlineScript($script){
-        $this->inlineScript[] = $script;
+        $attributes = apply_filters(MRSPEED_HOOK_PREFIX . '_js_printTag_attributes', $attributes);
+        $tag = '<script ' . GeneralUtility::getTagAttributes($attributes) . '></script>' . PHP_EOL;
+        return apply_filters(MRSPEED_HOOK_PREFIX . '_js_printTag', $tag);
     }
 }
